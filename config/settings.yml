@@ -2,3 +2,7 @@ plugins:
   discourse_topic_noindex_enabled:
     default: true
     client: true
+  discourse_topic_noindex_categories:
+    default: ""
+    type: category_list
+    list_type: compact
