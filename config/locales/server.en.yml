@@ -1,3 +1,4 @@
 en:
   site_settings:
     discourse_topic_noindex_enabled: "Enable Topic No-Index"
+    discourse_topic_noindex_categories: "Categories whose topic listings and topics should be hidden from search engines via the x-robots-tag=noindex header."

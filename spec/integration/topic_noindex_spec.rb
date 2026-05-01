@@ -60,4 +60,44 @@ describe "discourse-topic-noindex plugin" do
       expect(topic.noindex).to eq(true)
     end
   end
+
+  describe "category noindex" do
+    fab!(:category)
+    fab!(:topic_in_category) { Fabricate(:topic, category: category) }
+
+    before { SiteSetting.discourse_topic_noindex_enabled = true }
+
+    it "does not set noindex when category is not in the noindex list" do
+      get "/t/#{topic_in_category.slug}/#{topic_in_category.id}"
+      expect(response.headers["X-Robots-Tag"]).to be_nil
+
+      get "/c/#{category.slug}/#{category.id}"
+      expect(response.headers["X-Robots-Tag"]).to be_nil
+    end
+
+    it "sets noindex header on topics belonging to a noindex category" do
+      SiteSetting.discourse_topic_noindex_categories = category.id.to_s
+
+      get "/t/#{topic_in_category.slug}/#{topic_in_category.id}"
+      expect(response.headers["X-Robots-Tag"]).to eq("noindex")
+    end
+
+    it "sets noindex header on the category list view" do
+      SiteSetting.discourse_topic_noindex_categories = category.id.to_s
+
+      get "/c/#{category.slug}/#{category.id}"
+      expect(response.headers["X-Robots-Tag"]).to eq("noindex")
+
+      get "/c/#{category.slug}/#{category.id}/l/latest"
+      expect(response.headers["X-Robots-Tag"]).to eq("noindex")
+    end
+
+    it "does not set noindex when the plugin is disabled" do
+      SiteSetting.discourse_topic_noindex_enabled = false
+      SiteSetting.discourse_topic_noindex_categories = category.id.to_s
+
+      get "/c/#{category.slug}/#{category.id}"
+      expect(response.headers["X-Robots-Tag"]).to be_nil
+    end
+  end
 end

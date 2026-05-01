@@ -11,6 +11,11 @@ enabled_site_setting :discourse_topic_noindex_enabled
 
 module ::DiscourseTopicNoindex
   PLUGIN_NAME = "discourse-topic-noindex"
+
+  def self.category_noindex?(category_id)
+    return false if category_id.blank?
+    SiteSetting.discourse_topic_noindex_categories.split("|").map(&:to_i).include?(category_id.to_i)
+  end
 end
 
 require_relative "lib/discourse_topic_noindex/engine"
@@ -44,11 +49,32 @@ after_initialize do
 
       def show
         super
-        response.headers["X-Robots-Tag"] = "noindex" if @topic_view&.topic&.noindex
+        topic = @topic_view&.topic
+        return unless topic
+        if topic.noindex || ::DiscourseTopicNoindex.category_noindex?(topic.category_id)
+          response.headers["X-Robots-Tag"] = "noindex"
+        end
       end
     end
 
     ::TopicsController.prepend ::TopicControllerNoIndexExtension
+
+    module ::ListControllerNoIndexExtension
+      def self.prepended(base)
+        base.after_action :set_category_noindex_header
+      end
+
+      private
+
+      def set_category_noindex_header
+        return unless SiteSetting.discourse_topic_noindex_enabled
+        return unless @category
+        return unless ::DiscourseTopicNoindex.category_noindex?(@category.id)
+        response.headers["X-Robots-Tag"] = "noindex"
+      end
+    end
+
+    ::ListController.prepend ::ListControllerNoIndexExtension
 
     add_to_class(:topic, :noindex) { custom_fields["noindex"] }
 
